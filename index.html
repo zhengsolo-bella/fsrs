@@ -3,18 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FSRS 复习助手 · iCloud同步版</title>
+<title>FSRS 复习助手（App版）</title>
 <style>
-  *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto}
-  body{margin:0;padding:12px;background:#f8f9fc;}
+  *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto;margin:0;padding:0;}
+  body{background:#f8f9fc;padding-bottom:60px;} /* 给底部导航留出空间 */
   .container{max-width:700px;margin:0 auto;}
-  .card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+  .page{display:none;}
+  .page.active{display:block;}
+  .card{background:#fff;border-radius:16px;padding:16px;margin:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
   h2{font-size:20px;margin:8px 0 16px;color:#222;}
   h3{font-size:16px;margin:8px 0;color:#333;}
+  h4{font-size:15px;margin:0 0 10px 0;color:#333;}
+  .interval-setting{margin:10px 0;padding:12px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;}
+  .interval-item{display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap;}
+  .interval-item label{width:60px;font-size:14px;color:#333;}
+  .interval-item input{width:80px;margin:0;padding:6px 8px;font-size:14px;}
+  .interval-tip{font-size:12px;color:#647888;margin-top:4px;}
   .subject-group {margin:18px 0 10px 0;padding:8px 12px;border-left:4px solid #636f81;background:#f8fafc;border-radius:0 8px 8px 0;font-size:15px;font-weight:600;color:#333;}
-  input,textarea{width:100%;margin:6px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:12px;font-size:15px;}
-  textarea{resize:vertical;min-height:80px;}
-  button{border:none;border-radius:12px;padding:10px 14px;font-size:14px;cursor:pointer;margin:3px;}
+  input,textarea{width:100%;margin:6px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:12px;font-size:15px;outline:none;}
+  textarea{resize:vertical;min-height:80px;line-height:1.5;}
+  button{border:none;border-radius:12px;padding:10px 14px;font-size:14px;cursor:pointer;margin:3px;transition:opacity 0.2s;}
+  button:disabled{opacity:0.6;cursor:not-allowed;}
   .btn-primary{background:#636f81;color:white;}
   .btn-review{background:#10b8b1;color:white;}
   .btn-hard{background:#f59e0b;color:white;}
@@ -27,365 +36,478 @@
   .btn-filter.active{background:#4f46e5;color:#fff;border:1px solid #4f46e5;}
   .btn-sync{background:#0071e3;color:white;}
   .btn-upload{background:#7c3aed;color:white;}
+  .btn-save-interval{background:#f59e0b;color:white;padding:6px 12px;font-size:13px;margin-top:8px;}
   .subject-row{padding:12px 8px;margin:8px 0;background:#fdfdfe;border-radius:8px;}
   .due{color:#ef4444;font-weight:600;}
-  .normal{color:#647888;}
+  .normal{color:#647888;font-size:14px;}
   .filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;padding:8px;background:#f5f7fa;border-radius:10px;}
-  .empty-tip{color:#94a3b8;padding:16px;text-align:center;font-size:14px;}
-  .img-preview{width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin:8px 0;border:1px solid #f1f5f9;}
+  .empty-tip{color:#94a3b8;padding:24px;text-align:center;font-size:14px;line-height:1.6;}
+  .empty-tip i{font-size:24px;margin-bottom:8px;display:block;}
+  .img-preview{width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin:8px 0;border:1px solid #f1f5f9;display:none;}
   .img-show{width:100%;max-height:150px;object-fit:contain;border-radius:6px;margin:6px 0;}
   .upload-area{display:flex;align-items:center;gap:8px;margin:8px 0;}
   #imgFile,#importFile{display:none;}
   .sync-tip{font-size:12px;color:#0071e3;text-align:center;margin:4px 0;}
+  /* 底部导航栏样式 */
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:#fff;border-top:1px solid #e2e8f0;display:flex;justify-content:space-around;align-items:center;z-index:100;}
+  .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;cursor:pointer;}
+  .nav-item.active{color:#10b8b1;}
+  .nav-item i{font-size:20px;margin-bottom:4px;}
+  /* 消息页面样式 */
+  .message-item{display:flex;align-items:center;padding:16px;border-bottom:1px solid #f1f5f9;}
+  .message-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:12px;color:white;}
+  .message-icon.system{background:#22c55e;}
+  .message-icon.reminder{background:#94a3b8;}
+  .message-content{flex:1;}
+  .message-title{font-size:16px;font-weight:500;color:#1f2937;margin-bottom:2px;}
+  .message-text{font-size:14px;color:#6b7280;}
+  .message-time{font-size:12px;color:#9ca3af;}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="sync-tip">🍎 苹果设备专属 | iCloud Drive同步 + 本地永久保存 | 支持图文知识点</div>
-  <div class="card">
-    <h2>🧠 FSRS 复习助手（iCloud版）</h2>
-    <div class="top-actions">
-      <button class="btn-import" onclick="importClick()">导入</button>
-      <button class="btn-export" onclick="exportCSV()">导出 CSV</button>
-      <button class="btn-sync" onclick="syncICloud()">🔄 同步iCloud</button>
-      <input type="file" id="importFile" accept=".csv" style="display:none">
+  <!-- 1. 首页 -->
+  <div id="page-home" class="page active">
+    <div class="sync-tip">🍎 苹果设备专属 | iCloud Drive同步 + 本地永久保存 | 支持图文知识点</div>
+    <div class="card">
+      <h2>🧠 FSRS 复习助手</h2>
+      <div class="top-actions">
+        <button class="btn-import" onclick="document.getElementById('importFile').click()">导入</button>
+        <button class="btn-export" onclick="exportCSV()">导出 CSV</button>
+        <button class="btn-sync" onclick="syncICloud()">🔄 同步iCloud</button>
+        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" style="display:none">
+      </div>
+      <input id="subject" placeholder="科目：数学/英语/物理等">
+      <textarea id="content" placeholder="知识点文字（可搭配图片）"></textarea>
+      <div class="upload-area">
+        <button class="btn-upload" onclick="document.getElementById('imgFile').click()">📷 上传图片</button>
+        <span id="imgTip">未选择图片</span>
+        <input type="file" id="imgFile" accept="image/*" style="display:none">
+      </div>
+      <img id="previewImg" class="img-preview" src="" alt="图片预览">
+      <button class="btn-primary" onclick="addItem()">添加知识点</button>
     </div>
-    <input id="subject" placeholder="科目：数学/英语/物理等">
-    <textarea id="content" placeholder="知识点文字（可搭配图片）"></textarea>
-    <div class="upload-area">
-      <button class="btn-upload" onclick="document.getElementById('imgFile').click()">📷 上传图片</button>
-      <span id="imgTip">未选择图片</span>
-      <input type="file" id="imgFile" accept="image/*" style="display:none">
+    <div class="card">
+      <h3>📅 今日待复习</h3>
+      <div class="filter-bar" id="dueFilterBar"></div>
+      <div id="dueList"></div>
     </div>
-    <img id="previewImg" class="img-preview" src="" alt="图片预览" style="display:none">
-    <button class="btn-primary" onclick="addItem()">添加知识点</button>
+    <div class="card">
+      <h3>📚 全部知识点</h3>
+      <div class="filter-bar" id="allFilterBar"></div>
+      <div id="allList"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3>📅 今日待复习</h3>
-    <div class="filter-bar" id="dueFilterBar"></div>
-    <div id="dueList"></div>
+  <!-- 2. 记忆页面（可后续扩展） -->
+  <div id="page-memory" class="page">
+    <div class="card">
+      <h2>🧠 记忆</h2>
+      <div class="empty-tip">
+        <i>📚</i>
+        这里是记忆页面，后续可以扩展学习统计、遗忘曲线等功能。
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3>📚 全部知识点</h3>
-    <div class="filter-bar" id="allFilterBar"></div>
-    <div id="allList"></div>
+  <!-- 3. 消息页面 -->
+  <div id="page-message" class="page">
+    <div class="card">
+      <h2>💬 消息</h2>
+      <div class="message-item">
+        <div class="message-icon system">
+          <span>🔔</span>
+        </div>
+        <div class="message-content">
+          <div class="message-title">系统通知</div>
+          <div class="message-text">欢迎使用织网英语！</div>
+        </div>
+        <div class="message-time">a moment ago</div>
+      </div>
+      <div class="message-item">
+        <div class="message-icon reminder">
+          <span>🔔</span>
+        </div>
+        <div class="message-content">
+          <div class="message-title">学习提醒</div>
+          <div class="message-text">今天还没有完成学习任务哦</div>
+        </div>
+        <div class="message-time">2 hours ago</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 设置页面 -->
+  <div id="page-settings" class="page">
+    <div class="card">
+      <h2>⚙️ 设置</h2>
+      <div class="interval-setting">
+        <h4>复习间隔倍率自定义</h4>
+        <div class="interval-item">
+          <label>模糊：</label>
+          <input type="number" id="hardRate" step="0.1" min="0.1" placeholder="默认1.5">
+          <span>倍（原间隔×倍率）</span>
+        </div>
+        <div class="interval-item">
+          <label>记得：</label>
+          <input type="number" id="reviewRate" step="0.1" min="0.1" placeholder="默认2.0">
+          <span>倍（原间隔×倍率）</span>
+        </div>
+        <div class="interval-item">
+          <label>熟练：</label>
+          <input type="number" id="easyRate" step="0.1" min="0.1" placeholder="默认3.0">
+          <span>倍（原间隔×倍率）</span>
+        </div>
+        <button class="btn-save-interval" onclick="saveIntervalConfig()">💾 保存配置</button>
+        <div class="interval-tip">提示：配置自动本地保存，刷新不丢失；倍率越小复习越频繁，越大间隔越久</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航栏 -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="switchPage('home')">
+      <i>🏠</i>
+      <span>首页</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('memory')">
+      <i>🧠</i>
+      <span>记忆</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('message')">
+      <i>💬</i>
+      <span>消息</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('settings')">
+      <i>⚙️</i>
+      <span>设置</span>
+    </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
+// ====================== 配置 ======================
 const STORAGE_KEY = "fsrs_local_data";
-const ICLD_FILE_NAME = "fsrs-data.json";
+const INTERVAL_CONFIG_KEY = "fsrs_interval_config";
+const ICLD_FILE_NAME = "fsrs-bella-data.json";
 const ICLD_FOLDER = "FSRS复习助手";
 let dataList = [];
 let dueFilter = "all", allFilter = "all";
 let tempImgBase64 = "";
+let intervalConfig = { hard: 1.5, review: 2.0, easy: 3.0 };
 
-// 本地存储
+// ====================== 页面切换逻辑 ======================
+function switchPage(pageName) {
+  // 隐藏所有页面
+  document.querySelectorAll('.page').forEach(page => {
+    page.classList.remove('active');
+  });
+  // 显示目标页面
+  document.getElementById(`page-${pageName}`).classList.add('active');
+  // 更新导航栏激活状态
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  document.querySelector(`.nav-item[onclick="switchPage('${pageName}')"]`).classList.add('active');
+}
+
+// ====================== 复习间隔配置操作 ======================
+function loadIntervalConfig() {
+  try {
+    const s = localStorage.getItem(INTERVAL_CONFIG_KEY);
+    if (s) intervalConfig = JSON.parse(s);
+    document.getElementById('hardRate').value = intervalConfig.hard;
+    document.getElementById('reviewRate').value = intervalConfig.review;
+    document.getElementById('easyRate').value = intervalConfig.easy;
+  } catch (e) {console.log("间隔配置加载失败，使用默认值：", e);}
+}
+function saveIntervalConfig() {
+  const hard = parseFloat(document.getElementById('hardRate').value) || 1.5;
+  const review = parseFloat(document.getElementById('reviewRate').value) || 2.0;
+  const easy = parseFloat(document.getElementById('easyRate').value) || 3.0;
+  intervalConfig = { hard, review, easy };
+  localStorage.setItem(INTERVAL_CONFIG_KEY, JSON.stringify(intervalConfig));
+  alert("✅ 复习间隔配置保存成功！\n模糊：" + hard + "倍 | 记得：" + review + "倍 | 熟练：" + easy + "倍");
+}
+
+// ====================== 本地localStorage操作 ======================
 function loadLocal() {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
-    dataList = s ? JSON.parse(s) : [];
-  } catch (e) { dataList = []; }
+    if (s) dataList = JSON.parse(s);
+  } catch (e) {console.log("本地数据加载失败：", e);}
 }
 function saveLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(dataList));
 }
 
-// iCloud 基础判断
-function isSupported() {
-  return !!window.showOpenFilePicker;
-}
-
-// 选择 iCloud 文件夹
-async function getICloudFolder() {
-  if (!isSupported()) return null;
+// ====================== iCloud Drive文件读写 ======================
+async function selectICloudFolder() {
+  if (!window.showOpenFilePicker) {
+    alert("❌ 非苹果设备/浏览器不支持iCloud Drive操作！\n仅支持Mac/iOS/iPadOS的Safari/Chrome浏览器");
+    return null;
+  }
   try {
-    const [root] = await window.showOpenFilePicker({
-      type: "folder", startIn: "icloudDrive", multiple: false
+    const [folderHandle] = await window.showOpenFilePicker({
+      type: "folder",
+      multiple: false,
+      startIn: "icloudDrive"
     });
-    return await root.getDirectoryHandle(ICLD_FOLDER, { create: true });
+    const fsrsFolder = await folderHandle.getDirectoryHandle(ICLD_FOLDER, { create: true });
+    localStorage.setItem("icloud_folder_handle", JSON.stringify(await fsrsFolder.resolve()));
+    return fsrsFolder;
   } catch (e) {
-    alert("请允许访问 iCloud Drive");
+    alert("iCloud文件夹选择取消/失败：" + e.message);
     return null;
   }
 }
-
-// 读取 iCloud
+async function getICloudFolder() {
+  if (!window.showOpenFilePicker) return null;
+  const resolvePath = localStorage.getItem("icloud_folder_handle");
+  if (!resolvePath) return await selectICloudFolder();
+  try {
+    const folderHandle = await window.showOpenFilePicker({
+      type: "folder",
+      multiple: false,
+      startIn: "icloudDrive"
+    }).then(res => res[0]);
+    return await folderHandle.getDirectoryHandle(ICLD_FOLDER, { create: true });
+  } catch (e) {
+    return await selectICloudFolder();
+  }
+}
 async function loadICloud() {
   const folder = await getICloudFolder();
   if (!folder) return [];
   try {
-    const file = await folder.getFileHandle(ICLD_FILE_NAME, { create: false });
-    const blob = await file.getFile();
-    const text = await blob.text();
-    return JSON.parse(text) || [];
+    const fileHandle = await folder.getFileHandle(ICLD_FILE_NAME, { create: false });
+    const file = await fileHandle.getFile();
+    const content = await file.text();
+    return JSON.parse(content) || [];
   } catch (e) {
+    console.log("iCloud无历史数据，将创建新文件：", e);
     return [];
   }
 }
-
-// 写入 iCloud
 async function saveICloud(data) {
   const folder = await getICloudFolder();
   if (!folder) return false;
   try {
-    const file = await folder.getFileHandle(ICLD_FILE_NAME, { create: true });
-    const w = await file.createWritable();
-    await w.write(JSON.stringify(data, null, 2));
-    await w.close();
+    const fileHandle = await folder.getFileHandle(ICLD_FILE_NAME, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
     return true;
   } catch (e) {
-    alert("保存 iCloud 失败");
+    alert("保存到iCloud失败：" + e.message);
     return false;
   }
 }
-
-// 合并数据（去重）
-function mergeData(cloud, local) {
+function mergeICloudAndLocal(icloudData, localData) {
   const map = new Map();
-  [...local, ...cloud].forEach(item => {
-    const key = item.subject + "|" + item.content;
-    map.set(key, item);
+  [...localData, ...icloudData].forEach(it => {
+    const key = `${it.subject}|${it.content}|${it.img ? it.img.slice(0, 50) : ''}`;
+    map.set(key, it);
   });
   return Array.from(map.values());
 }
 
-// 同步按钮
+// ====================== iCloud同步 ======================
 async function syncICloud() {
-  if (!isSupported()) {
-    alert("❌ 仅支持苹果 Safari / Chrome");
+  if (!window.showOpenFilePicker) {
+    alert("❌ 仅支持苹果设备（Mac/iOS/iPadOS）的Safari/Chrome浏览器使用iCloud同步！");
     return;
   }
-  const cloudData = await loadICloud();
-  const merged = mergeData(cloudData, dataList);
-  const ok = await saveICloud(merged);
-  if (ok) {
-    dataList = merged;
-    saveLocal();
-    render();
-    alert("✅ iCloud 同步成功\n总数：" + merged.length);
+  try {
+    const icloudData = await loadICloud();
+    const mergedData = mergeICloudAndLocal(icloudData, dataList);
+    const isSaved = await saveICloud(mergedData);
+    if (isSaved) {
+      dataList = mergedData;
+      saveLocal();
+      render();
+      alert(`✅ iCloud同步成功！\n当前总知识点：${dataList.length} 条\n（已同步到iCloud Drive/${ICLD_FOLDER}目录）`);
+    }
+  } catch (e) {
+    alert("iCloud同步异常：" + e.message);
   }
 }
 
-// 图片
-document.getElementById('imgFile').addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f || !f.type.startsWith('image/')) return;
-  const r = new FileReader();
-  r.onload = ev => {
+// ====================== 图片上传/预览 ======================
+document.getElementById('imgFile').onchange = function(e) {
+  const file = e.target.files[0];
+  if (!file || !file.type.startsWith('image/')) {
+    alert("请选择有效的图片文件！");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(ev) {
     tempImgBase64 = ev.target.result;
-    const img = document.getElementById('previewImg');
-    img.src = tempImgBase64;
-    img.style.display = "block";
-    document.getElementById('imgTip').textContent = "已选图片";
+    const previewImg = document.getElementById('previewImg');
+    previewImg.src = tempImgBase64;
+    previewImg.style.display = "block";
+    document.getElementById('imgTip').innerText = "已选择图片：" + file.name;
   };
-  r.readAsDataURL(f);
-});
+  reader.readAsDataURL(file);
+};
 
-// 工具
-function now() {
-  return Math.floor(Date.now() / 86400000);
-}
-
-// 添加
+// ====================== 基础功能：增删改查/复习 ======================
+function now() { return Math.floor(Date.now() / 86400000); }
 function addItem() {
   const sub = document.getElementById('subject').value.trim();
   const cnt = document.getElementById('content').value.trim();
-  if (!sub || !cnt) {
-    alert("请填写科目和内容");
-    return;
-  }
-  dataList.push({
-    subject: sub,
-    content: cnt,
-    due: now() + 1,
-    lastDays: 0,
-    img: tempImgBase64
-  });
-  document.getElementById('subject').value = "";
-  document.getElementById('content').value = "";
-  document.getElementById('imgTip').textContent = "未选择图片";
-  document.getElementById('previewImg').style.display = "none";
+  if (!sub || !cnt) return alert("请填写科目和知识点文字！");
+  dataList.push({ subject: sub, content: cnt, due: now()+1, lastDays:0, img: tempImgBase64 });
+  document.getElementById('subject').value = '';
+  document.getElementById('content').value = '';
+  document.getElementById('imgTip').innerText = "未选择图片";
+  const previewImg = document.getElementById('previewImg');
+  previewImg.src = "";
+  previewImg.style.display = "none";
   tempImgBase64 = "";
   saveLocal();
   render();
 }
-
-// 复习
 function review(idx, grade) {
   const it = dataList[idx];
   it.lastDays = it.lastDays || 0;
-  let factor;
-  if (grade === 2) factor = 1.5;
-  else if (grade === 3) factor = 2;
-  else factor = 3;
-  const next = Math.max(1, Math.round(it.lastDays * factor));
+  const rate = grade === 2 ? intervalConfig.hard : grade === 3 ? intervalConfig.review : intervalConfig.easy;
+  const next = Math.max(1, Math.round(it.lastDays * rate));
   it.due = now() + next;
   it.lastDays = next;
   saveLocal();
   render();
 }
-
-// 修改
 function editItem(idx) {
   const it = dataList[idx];
-  const s = prompt("科目", it.subject);
-  const c = prompt("内容", it.content);
-  if (s == null || c == null) return;
-  it.subject = s.trim();
-  it.content = c.trim();
-  saveLocal();
-  render();
+  const s = prompt("修改科目", it.subject);
+  const c = prompt("修改知识点文字", it.content);
+  if (s != null && c != null) {
+    it.subject = s.trim();
+    it.content = c.trim();
+    if (confirm("是否重新上传图片？\n（点击确定将清空原有图片，重新选择）")) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(ev) {
+            it.img = ev.target.result;
+            saveLocal();
+            render();
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
+    }
+    saveLocal();
+    render();
+  }
 }
-
-// 删除
 function deleteItem(idx) {
-  if (!confirm("确定删除？")) return;
-  dataList.splice(idx, 1);
-  saveLocal();
-  render();
+  if (confirm("确定删除该知识点（含图片）？")) {
+    dataList.splice(idx, 1);
+    saveLocal();
+    render();
+  }
 }
 
-// 筛选栏
-function renderFilterBar(containerId, current, onChange) {
+// ====================== 科目筛选/渲染 ======================
+function renderFilterBar(containerId, activeFilter, onFilterChange) {
   const container = document.getElementById(containerId);
-  const subs = [...new Set(dataList.map(x => x.subject || "未分类"))].sort();
-  let html = `<button class="btn-filter ${current==='all'?'active':''}" onclick="${onChange}('all')">全部</button>`;
-  subs.forEach(sub => {
-    html += `<button class="btn-filter ${current===sub?'active':''}" onclick="${onChange}('${sub}')">${sub}</button>`;
+  if (!container) return;
+  const subjects = [...new Set(dataList.map(it => it.subject || "未分类"))].sort();
+  let html = `<button class="btn-filter ${activeFilter === 'all' ? 'active' : ''}" onclick="${onFilterChange}('all')">全部</button>`;
+  subjects.forEach(sub => {
+    html += `<button class="btn-filter ${activeFilter === sub ? 'active' : ''}" onclick="${onFilterChange}('${sub}')">${sub}</button>`;
   });
-  container.innerHTML = subs.length ? html : '<div class="empty-tip">暂无科目</div>';
+  container.innerHTML = subjects.length === 0 ? '<div class="empty-tip">暂无科目，先添加知识点吧</div>' : html;
 }
-
-function changeDueFilter(sub) {
-  dueFilter = sub; render();
+function changeDueFilter(sub) { dueFilter = sub; render(); }
+function changeAllFilter(sub) { allFilter = sub; render(); }
+function render() {
+  const today = now();
+  renderFilterBar("dueFilterBar", dueFilter, "changeDueFilter");
+  renderFilterBar("allFilterBar", allFilter, "changeAllFilter");
+  const dueData = dataList.filter(it => it.due <= today);
+  const filteredDueData = dueFilter === 'all' ? dueData : dueData.filter(it => (it.subject || "未分类") === dueFilter);
+  const filteredAllData = allFilter === 'all' ? dataList : dataList.filter(it => (it.subject || "未分类") === allFilter);
+  renderList(document.getElementById("dueList"), filteredDueData, true);
+  renderList(document.getElementById("allList"), filteredAllData, false);
 }
-function changeAllFilter(sub) {
-  allFilter = sub; render();
-}
-
-// 渲染列表
 function renderList(el, list, showReview) {
+  if (!el) return;
+  let html = "";
   if (list.length === 0) {
-    el.innerHTML = '<div class="empty-tip">暂无知识点</div>';
+    html = '<div class="empty-tip">暂无知识点</div>';
+    el.innerHTML = html;
     return;
   }
   const groups = {};
-  list.forEach(item => {
-    const k = item.subject || "未分类";
-    groups[k] = groups[k] || [];
-    groups[k].push(item);
+  list.forEach((it, idx) => {
+    const k = it.subject || "未分类";
+    if (!groups[k]) groups[k] = [];
+    groups[k].push({ it, idx: dataList.findIndex(d => d.content === it.content && d.subject === it.subject) });
   });
-  let html = "";
   Object.keys(groups).sort().forEach(sub => {
-    html += `<div class="subject-group">📁 ${sub}（${groups[sub].length}）</div>`;
-    groups[sub].forEach(it => {
-      const idx = dataList.findIndex(x => 
-        x.subject === it.subject && x.content === it.content
-      );
-      const dueText = it.due <= now() 
-        ? '<span class="due">今天复习</span>' 
-        : `${it.due - now()} 天后`;
-      const reviewBtns = showReview ? `
-        <button class="btn-hard" onclick="review(${idx},2)">模糊</button>
-        <button class="btn-review" onclick="review(${idx},3)">记得</button>
-        <button class="btn-easy" onclick="review(${idx},4)">熟练</button>
-      ` : "";
-      const imgHtml = it.img ? `<img src="${it.img}" class="img-show">` : "";
-      html += `
-        <div class="subject-row">
-          <div>${it.content}</div>
-          ${imgHtml}
-          <div class="normal" style="margin:6px 0;">${dueText}</div>
-          <div>
-            ${reviewBtns}
-            <button class="btn-edit" onclick="editItem(${idx})">修改</button>
-            <button class="btn-del" onclick="deleteItem(${idx})">删除</button>
-          </div>
-        </div>
-      `;
+    html += `<div class="subject-group">📁 ${sub} (${groups[sub].length}条)</div>`;
+    groups[sub].forEach(({ it, idx }) => {
+      const dueTxt = it.due <= now() ? `<span class="due">今天复习</span>` : `${it.due - now()} 天后`;
+      const btns = showReview ? `<button class="btn-hard" onclick="review(${idx},2)">模糊</button><button class="btn-review" onclick="review(${idx},3)">记得</button><button class="btn-easy" onclick="review(${idx},4)">熟练</button>` : "";
+      const imgHtml = it.img ? `<img src="${it.img}" class="img-show" alt="知识点图片">` : "";
+      html += `<div class="subject-row"><div style="margin-bottom:6px;">${it.content}</div>${imgHtml}<div style="font-size:14px;" class="normal">${dueTxt}</div><div style="margin-top:8px;">${btns}<button class="btn-edit" onclick="editItem(${idx})">修改</button><button class="btn-del" onclick="deleteItem(${idx})">删除</button></div></div>`;
     });
   });
   el.innerHTML = html;
 }
 
-// 全局渲染
-function render() {
-  const today = now();
-  renderFilterBar("dueFilterBar", dueFilter, "changeDueFilter");
-  renderFilterBar("allFilterBar", allFilter, "changeAllFilter");
-
-  const dueItems = dataList.filter(x => x.due <= today);
-  const allItems = dataList;
-
-  const filteredDue = dueFilter === "all" 
-    ? dueItems 
-    : dueItems.filter(x => x.subject === dueFilter);
-
-  const filteredAll = allFilter === "all"
-    ? allItems
-    : allItems.filter(x => x.subject === allFilter);
-
-  renderList(document.getElementById("dueList"), filteredDue, true);
-  renderList(document.getElementById("allList"), filteredAll, false);
-}
-
-// 导入
-function importClick() {
-  document.getElementById('importFile').click();
-}
-document.getElementById('importFile').addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
+// ====================== 导入/导出 ======================
+document.getElementById('importFile').onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
     try {
-      const wb = XLSX.read(ev.target.result, { type: "array" });
-      const arr = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
-      let count = 0;
-      for (let i = 1; i < arr.length; i++) {
-        const [sub, cnt] = arr[i] || [];
+      const wb = XLSX.read(ev.target.result, { type: 'array' });
+      const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+      let added = 0;
+      for (let i = 1; i < json.length; i++) {
+        const row = json[i];
+        const sub = (row[0] || "").trim();
+        const cnt = (row[1] || "").trim();
         if (sub && cnt) {
-          dataList.push({
-            subject: sub + "",
-            content: cnt + "",
-            due: now() + 1,
-            lastDays: 0,
-            img: ""
-          });
-          count++;
+          dataList.push({ subject: sub, content: cnt, due: now()+1, lastDays:0, img: "" });
+          added++;
         }
       }
       saveLocal();
       render();
-      alert(`导入成功：${count} 条`);
+      alert(`导入成功：${added} 条（CSV仅导入文字，图片需手动添加）`);
     } catch (err) {
-      alert("导入失败");
+      alert("导入失败：" + err.message);
     }
     e.target.value = "";
   };
-  r.readAsArrayBuffer(f);
-});
-
-// 导出
+  reader.readAsArrayBuffer(file);
+};
 function exportCSV() {
   const rows = [["科目", "知识点"]];
   dataList.forEach(it => rows.push([it.subject, it.content]));
   const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(rows));
-  const blob = new Blob([new Uint8Array([0xEF,0xBB,0xBF]), csv], {
-    type: "text/csv;charset=utf-8"
-  });
+  const blob = new Blob([new Uint8Array([0xEF,0xBB,0xBF]), csv], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "FSRS知识点.csv";
   a.click();
 }
 
-// 启动
+// ====================== 初始化 ======================
 loadLocal();
+loadIntervalConfig();
 render();
 </script>
 </body>
